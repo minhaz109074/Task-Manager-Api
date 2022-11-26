@@ -25,9 +25,8 @@ namespace Task_Manager_Api.Controllers
         [HttpPost]
         public async Task<ActionResult<Response<GetTaskItemDto>>> AddTask(AddTaskItemDto newTask)
         {
-            if(!ModelState.IsValid) return BadRequest();
+            
             response = await _taskService.AddTask(newTask);
-            if (!response.IsSuccess) return BadRequest(response);
             return StatusCode(StatusCodes.Status201Created, response);
         }
 
@@ -71,18 +70,16 @@ namespace Task_Manager_Api.Controllers
         [HttpPut("{id}")]
         public async Task<ActionResult<Response<GetTaskItemDto>>> UpdateTask(int id, UpdateTaskItemDto updatedTask)
         {
-            if(!ModelState.IsValid) return BadRequest();
+            
             response = await _taskService.UpdateTask(id, updatedTask);
-            if (!response.IsSuccess) return BadRequest(response);
             return Ok(response);
         }
 
         [HttpPatch("{id}")]
         public async Task<ActionResult<Response<GetTaskItemDto>>> EditTask(int id, EditTaskItemDto editedTask)
         {
-            if (!ModelState.IsValid) return BadRequest();
+            
             response = await _taskService.EditTask(id, editedTask);
-            if (!response.IsSuccess) return BadRequest(response);
             return Ok(response);
         }
         [HttpDelete("{id}")]
@@ -90,7 +87,6 @@ namespace Task_Manager_Api.Controllers
         {
     
             response = await _taskService.DeleteTask(id);
-            if (!response.IsSuccess) return NotFound(response);
             return Ok(response);
         }
     }

@@ -1,6 +1,5 @@
 ﻿using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
-using Task_Manager_Api.DTOs.TaskItem;
 using Task_Manager_Api.Models;
 using Task_Manager_Api.Services;
 using Task_Manager_Api.DTOs.Person;
@@ -21,9 +20,7 @@ namespace Task_Manager_Api.Controllers
         [HttpPost]
         public async Task<ActionResult<Response<GetPersonDto>>> AddPerson(AddPersonDto newPerson)
         {
-            if (!ModelState.IsValid) return BadRequest();
             response = await _personService.AddPerson(newPerson);
-            if (!response.IsSuccess) return BadRequest(response);
             return StatusCode(StatusCodes.Status201Created, response);
         }
 
@@ -42,17 +39,15 @@ namespace Task_Manager_Api.Controllers
         [HttpPut("{name}")]
         public async Task<ActionResult<Response<GetPersonDto>>> UpdatePerson(string name, UpdatePersonDto updatedPerson)
         {
-            if (!ModelState.IsValid) return BadRequest();
+            
             response = await _personService.UpdatePerson(name, updatedPerson);
-            if (!response.IsSuccess) return BadRequest(response);
             return Ok(response);
         }
         [HttpPatch("{name}")]
         public async Task<ActionResult<Response<GetPersonDto>>> EditPerson(string name, EditPersonDto editedPerson)
         {
-            if (!ModelState.IsValid) return BadRequest();
+           
             response = await _personService.EditPerson(name, editedPerson);
-            if (!response.IsSuccess) return BadRequest(response);
             return Ok(response);
         }
 
@@ -61,7 +56,6 @@ namespace Task_Manager_Api.Controllers
         {
             
             response = await _personService.DeletePerson(name);
-            if (!response.IsSuccess) return NotFound(response);
             return Ok(response);
         }
 

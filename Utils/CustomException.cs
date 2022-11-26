@@ -1,5 +1,5 @@
 ﻿using System;
-namespace Task_Manager_Api.Utils
+namespace Task_Manager_Api.Exceptions
 {
     public class NotFoundException: Exception
     {

@@ -10,7 +10,7 @@ using System.Runtime.InteropServices;
 using Task_Manager_Api.DTOs.TaskItem;
 using Task_Manager_Api.Models;
 using Task_Manager_Api.Repositories;
-using Task_Manager_Api.Utils;
+using Task_Manager_Api.Exceptions;
 
 namespace Task_Manager_Api.Services
 {
@@ -18,13 +18,11 @@ namespace Task_Manager_Api.Services
     {
    
         private readonly IMapper _mapper;
-        private readonly ILogService _logService;
         private readonly IRepository<TaskItem> _taskRepository;
         private readonly IRepository<Person> _personRepository;
-        public TaskService(IMapper mapper, ILogService logService, IRepository<TaskItem> taskRepository, IRepository<Person> personRepository)
+        public TaskService(IMapper mapper, IRepository<TaskItem> taskRepository, IRepository<Person> personRepository)
         {
             _mapper = mapper;
-            _logService = logService;
             _taskRepository = taskRepository;
             _personRepository = personRepository;
         }
@@ -33,34 +31,24 @@ namespace Task_Manager_Api.Services
         public async Task<Response<GetTaskItemDto>> AddTask(AddTaskItemDto newTask)
         {
             var response = new Response<GetTaskItemDto>();
-            try
-            {
-               
-                var taskRequester = await _personRepository.FindByName(newTask.TaskRequestedBy);
-                if (taskRequester == null) throw new NotFoundException($"Task Requested by person-{newTask.TaskRequestedBy} doesn't exist in the system");
-                if(newTask.TaskAssignedTo != null)
-                {
-                    
-                    var taskAssignedto = await _personRepository.FindByName(newTask.TaskAssignedTo);
-                    if (taskAssignedto == null) throw new NotFoundException($"Task Assigned to person-{newTask?.TaskAssignedTo} doesn't exist in the system");
-                }
+            string msg = $" Please send a get request to api/persons to view available people or a post request to add one. " +
+                          $"Note: Here person name must have to be unique";
 
-                var task = _mapper.Map<TaskItem>(newTask);
-                task.IsCompleted = false;
-                
-                await _taskRepository.Add(task);
-                response.Data = _mapper.Map<GetTaskItemDto>(task);
-                response.Message = "Successfully added to the database"; 
-            }
-            catch (Exception ex)
+            var taskRequester = await _personRepository.FindByName(newTask.TaskRequestedBy);
+            if (taskRequester == null) throw new NotFoundException($"Task Requested by person-{newTask.TaskRequestedBy} doesn't exist in the system." + $"{msg}");
+            if (newTask.TaskAssignedTo != null)
             {
-                
-                response.IsSuccess = false;
-                response.Message = $"{ex.Message}." +
-                    $" Please send a get request to api/persons to view available people or a post request to add one. " +
-                    $"Note: Here person name must have to be unique";
-                await _logService.CreateExceptionLog(ex);
+
+                var taskAssignedto = await _personRepository.FindByName(newTask.TaskAssignedTo);
+                if (taskAssignedto == null) throw new NotFoundException($"Task Assigned to person-{newTask?.TaskAssignedTo} doesn't exist in the system." + $"{msg}");
             }
+
+            var task = _mapper.Map<TaskItem>(newTask);
+            task.IsCompleted = false;
+
+            await _taskRepository.Add(task);
+            response.Data = _mapper.Map<GetTaskItemDto>(task);
+            response.Message = "Successfully added to the database";
             return response;
 
         }
@@ -134,33 +122,25 @@ namespace Task_Manager_Api.Services
         public async Task<Response<GetTaskItemDto>> UpdateTask(int id, UpdateTaskItemDto updatedTask)
         {
             var response = new Response<GetTaskItemDto>();
-            try
-            {
-                var task = await _taskRepository.FindById(id);
 
-                if (task == null) throw new NotFoundException($"Task {id} doesn't exist");
-       
-                
-                var taskRequester = await _personRepository.FindByName(updatedTask.TaskRequestedBy);
-                if (taskRequester == null) throw new NotFoundException("Task Requested by person doesn't exist in the system");
-                var taskAssignedto = await _personRepository.FindByName(updatedTask.TaskAssignedTo);
-                if (taskAssignedto == null) throw new NotFoundException("Task Assigned to person doesn't exist in the system");
+            var task = await _taskRepository.FindById(id);
 
-           
-                task.Title = updatedTask.Title;
-                task.TaskRequestedBy = updatedTask.TaskRequestedBy;
-                task.TaskAssignedTo = updatedTask.TaskAssignedTo;
-                task.IsCompleted = updatedTask.IsCompleted;
+            if (task == null) throw new NotFoundException($"Task {id} doesn't exist");
 
-                await  _taskRepository.Update(task);
-                response.Data = _mapper.Map<GetTaskItemDto>(task);
-            }
-            catch(Exception ex)
-            {
-                response.IsSuccess = false;
-                response.Message = ex.Message;
-                await _logService.CreateExceptionLog(ex);
-            }
+
+            var taskRequester = await _personRepository.FindByName(updatedTask.TaskRequestedBy);
+            if (taskRequester == null) throw new NotFoundException("Task Requested by person doesn't exist in the system");
+            var taskAssignedto = await _personRepository.FindByName(updatedTask.TaskAssignedTo);
+            if (taskAssignedto == null) throw new NotFoundException("Task Assigned to person doesn't exist in the system");
+
+
+            task.Title = updatedTask.Title;
+            task.TaskRequestedBy = updatedTask.TaskRequestedBy;
+            task.TaskAssignedTo = updatedTask.TaskAssignedTo;
+            task.IsCompleted = updatedTask.IsCompleted;
+
+            await _taskRepository.Update(task);
+            response.Data = _mapper.Map<GetTaskItemDto>(task);
 
             return response;
         }
@@ -168,26 +148,18 @@ namespace Task_Manager_Api.Services
         public async Task<Response<GetTaskItemDto>> EditTask(int id, EditTaskItemDto editedTask)
         {
             var response = new Response<GetTaskItemDto>();
-            try
-            {
-                var task = await _taskRepository.FindById(id);
 
-                if (task == null) throw new NotFoundException($"Task {id} doesn't exist");
-                if(editedTask.Title != null) { task.Title = editedTask.Title; }
-                if(editedTask.IsCompleted.ToString() == "True" || editedTask.IsCompleted.ToString() == "False") 
-                { 
-                    task.IsCompleted = editedTask.IsCompleted; 
-                }
+            var task = await _taskRepository.FindById(id);
 
-                await _taskRepository.Update(task);
-                response.Data = _mapper.Map<GetTaskItemDto>(task);
-            }
-            catch (Exception ex)
+            if (task == null) throw new NotFoundException($"Task {id} doesn't exist");
+            if (editedTask.Title != null) { task.Title = editedTask.Title; }
+            if (editedTask.IsCompleted.ToString() == "True" || editedTask.IsCompleted.ToString() == "False")
             {
-                response.IsSuccess = false;
-                response.Message = ex.Message;
-                await _logService.CreateExceptionLog(ex);
+                task.IsCompleted = editedTask.IsCompleted;
             }
+
+            await _taskRepository.Update(task);
+            response.Data = _mapper.Map<GetTaskItemDto>(task);
 
             return response;
 
@@ -196,24 +168,16 @@ namespace Task_Manager_Api.Services
         public async Task<Response<List<GetTaskItemDto>>> DeleteTask(int id)
         {
             var response = new Response<List<GetTaskItemDto>>();
-            try
-            {
-                var task = await _taskRepository.FindById(id);
 
-                if (task == null) throw new NotFoundException($"Task {id} doesn't exist");
+            var task = await _taskRepository.FindById(id);
 
-                await _taskRepository.Delete(task);
+            if (task == null) throw new NotFoundException($"Task {id} doesn't exist");
 
-                var DbTasks = await _taskRepository.GetAll();
-                response.Data = DbTasks.Select(t => _mapper.Map<GetTaskItemDto>(t)).OrderBy(r => r.Id).ToList();
-                response.Message = $"Successfully deleted task-id {id} from the database";
-            }
-            catch (Exception ex)
-            {
-                response.IsSuccess = false;
-                response.Message = ex.Message;
-                await _logService.CreateExceptionLog(ex);
-            }
+            await _taskRepository.Delete(task);
+
+            var DbTasks = await _taskRepository.GetAll();
+            response.Data = DbTasks.Select(t => _mapper.Map<GetTaskItemDto>(t)).OrderBy(r => r.Id).ToList();
+            response.Message = $"Successfully deleted task-id {id} from the database";
 
             return response;
         }

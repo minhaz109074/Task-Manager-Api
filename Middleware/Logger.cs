@@ -2,6 +2,11 @@
 using Task_Manager_Api.Models;
 using Task_Manager_Api.Services;
 using Microsoft.AspNetCore.Diagnostics;
+using System.Net;
+using System;
+using Task_Manager_Api.Exceptions;
+using System.Text.Json;
+using Task_Manager_Api.DTOs.ErrorDetails;
 
 namespace Task_Manager_Api.Middleware
 {
@@ -19,11 +24,22 @@ namespace Task_Manager_Api.Middleware
 
         public async Task Invoke(HttpContext context, ILogService logService)
         {
+
             dynamic requestLogs = RequestLoggingInfo(context);
-            await _next(context);
+
+            try
+            {
+                await _next(context);
+            }
+            catch(Exception ex)
+            {
+                await HandleException(context, ex);
+                await logService.CreateExceptionLog(ex);
+            }
+            
             dynamic responseLogs = ResponceLoggingInfo(context);
             
-            logService?.CreateRequestResponseLog(requestLogs, responseLogs);
+            await logService.CreateRequestResponseLog(requestLogs, responseLogs);
         }
 
         private Dictionary<string, dynamic> RequestLoggingInfo(HttpContext context)
@@ -45,6 +61,27 @@ namespace Task_Manager_Api.Middleware
             logs["RequestLeaveTime"] = DateTime.Now;
 
             return logs;
+        }
+
+        private async Task HandleException(HttpContext context, Exception exception)
+        {
+            
+            context.Response.StatusCode = exception switch
+            {
+                NotFoundException => (int)HttpStatusCode.NotFound,
+                RecordAlreadyExistException => (int)HttpStatusCode.BadRequest,
+                _ => (int)HttpStatusCode.InternalServerError
+            };
+            var response = new ErrorDetailsDto
+            {
+                StatusCode = context.Response.StatusCode,
+                IsSuccess = false,
+                ErrorMessage = exception.Message
+
+            };
+            var jsonResponse = JsonSerializer.Serialize(response);
+            context.Response.ContentType = "application/json";
+            await context.Response.WriteAsync(jsonResponse);
         }
 
     }
