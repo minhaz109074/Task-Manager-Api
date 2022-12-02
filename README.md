@@ -34,3 +34,8 @@ Clone or Download this repository. Change Connection strings for database connec
 - PUT https://localhost:{port}/api/persons/{name} => It updates the information of a particular person on the persons list.
 - PATCH https://localhost:{port}/api/persons/{name} =>  It edits some particular fields for a particular person in the person list.
 - DELETE https://localhost:{port}/api/persons/{name} =>  It removes a single person from the person list.
+
+## Screenshot
+<p float="left"> 
+<img src="Screenshots/API.png" />
+</p
